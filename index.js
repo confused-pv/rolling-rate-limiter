@@ -81,18 +81,37 @@ function RateLimiter (options) {
         return timestamp > clearBefore;
       });
 
-      var tooManyInInterval = userSet.length >= maxInInterval;
-      var timeSinceLastRequest = minDifference && (now - userSet[userSet.length - 1]);
 
+      var userLength = userSet.length;
+      var tooManyInInterval = userLength >= maxInInterval;
+      var timeLapsedSinceLastRequest = now - userSet[userLength - 1];
+      var timeSinceLastRequest = minDifference && timeLapsedSinceLastRequest;
+      
       var result;
       if (tooManyInInterval || timeSinceLastRequest < minDifference) {
         result = Math.min(userSet[0] - now + interval, minDifference ? minDifference - timeSinceLastRequest : Infinity);
-        result = Math.floor(result/1000); // convert from microseconds.
+        result = Math.ceil(result/1000); // convert from microseconds.
+
+        console.log("sending %s ", result);
       } else {
+        console.log("sending ZERO");
         result = 0;
       }
-      userSet.push(now);
-			var timeoutInterval = Math.floor(interval/1000); // convert from microseconds.
+
+      //if too many push is coming in then rather than pushing the value 
+      //last record is updated. Too make it memory efficient.
+      //if calls are coming withing 5 millisecond and length has already shot up to 9 records
+      //then lets update the last record
+      console.log("length = %s & timeLapsedSinceLastRequest = %s", userLength, timeLapsedSinceLastRequest)
+      if(userLength > 9 && timeLapsedSinceLastRequest < 10000 ){
+
+        userSet[userLength - 1] = now;
+      }else{
+
+        userSet.push(now);  
+      }
+      
+      var timeoutInterval = Math.floor(interval/1000); // convert from microseconds.
       timeouts[id] = setTimeout(function() {
         delete storage[id];
       }, timeoutInterval);
