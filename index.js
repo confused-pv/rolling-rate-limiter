@@ -1,3 +1,5 @@
+"use strict"
+
 var assert = require("assert");
 var microtime = require("microtime-nodejs");
 
@@ -27,9 +29,9 @@ function RateLimiter (options) {
         cb = id;
         id = "";
       }
-      
+
       assert.equal(typeof cb, "function", "Callback must be a function.");
-      
+
       var now = microtime.now();
       var key = namespace + id;
       var clearBefore = now - interval;
@@ -41,7 +43,7 @@ function RateLimiter (options) {
       batch.zadd(key, now, now);
       batch.exec(function (err, resultArr) {
         if (err) return cb(err);
-    
+
         var userSet = resultArr[2].map(Number);
 
         var tooManyInInterval = userSet.length >= maxInInterval;
@@ -69,7 +71,7 @@ function RateLimiter (options) {
         id = cb || "";
         cb = null;
       }
-      
+
       var now = microtime.now();
       var key = namespace + id;
       var clearBefore = now - interval;
@@ -90,9 +92,10 @@ function RateLimiter (options) {
         result = 0;
       }
       userSet.push(now);
+			var timeoutInterval = Math.floor(interval/1000); // convert from microseconds.
       timeouts[id] = setTimeout(function() {
         delete storage[id];
-      }, interval);
+      }, timeoutInterval);
 
       if (cb) {
         return process.nextTick(function() {
@@ -106,6 +109,3 @@ function RateLimiter (options) {
 };
 
 module.exports = RateLimiter;
-
-
-
